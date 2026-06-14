@@ -207,6 +207,7 @@ mkdir -p riscv64/bin/dial
 mkdir -p riscv64/bin/disk
 mkdir -p riscv64/bin/fs
 mkdir -p riscv64/bin/games
+mkdir -p riscv64/bin/image
 mkdir -p riscv64/bin/ip/httpd
 mkdir -p riscv64/bin/ndb
 mkdir -p riscv64/bin/nusb
