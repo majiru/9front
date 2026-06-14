@@ -15,7 +15,7 @@ enum {
 	Nself		= Maxmedia*5,
 	NHASH		= 1<<6,
 	NCACHE		= 256,
-	QMAX		= 192*1024-1,
+	QMAX		= 1024*1024,
 };
 
 static Medium *media[Maxmedia] = { 0 };
@@ -420,6 +420,7 @@ ipifcoput(Ipifc *ifc, Block *bp, int version, uchar *ip, Routehint *rh)
 	}
 	bp = concatblock(bp);
 	ifc->load += BLEN(bp);
+	ifc->out++;
 	ifc->m->bwrite(ifc, bp, version, ip, rh);
 }
 
@@ -428,28 +429,21 @@ ipifcoput(Ipifc *ifc, Block *bp, int version, uchar *ip, Routehint *rh)
  *  called when a process writes to an interface's 'data'
  */
 static void
-ipifckick(void *x)
+ipifckick(void *x, Block *bp)
 {
 	Conv *c = x;
-	Block *bp;
 	Ipifc *ifc;
-
-	bp = qget(c->wq);
-	if(bp == nil)
-		return;
+	Queue *q;
 
 	ifc = (Ipifc*)c->ptcl;
-	rlock(ifc);
-	if(waserror()){
-		runlock(ifc);
-		nexterror();
-	}
-	if(ifc->m != nil && ifc->m->pktin != nil)
-		(*ifc->m->pktin)(c->p->f, ifc, bp);
-	else
+	q = ifc->loopback;
+	if(q == nil || ifc->lifc == nil){
 		freeb(bp);
-	runlock(ifc);
-	poperror();
+		return;
+	}
+	if(ifc->conv->snoopers.ref > 0)
+		qpass(ifc->conv->sq, copyblock(bp, BLEN(bp)));
+	qbwrite(q, bp);
 }
 
 /*
@@ -461,7 +455,7 @@ ipifccreate(Conv *c)
 	Ipifc *ifc;
 
 	c->rq = qopen(QMAX, 0, 0, 0);
-	c->wq = qopen(QMAX, Qkick, ipifckick, c);
+	c->wq = qbypass(ipifckick, c);
 	c->sq = qopen(QMAX, 0, 0, 0);
 	if(c->rq == nil || c->wq == nil || c->sq == nil)
 		error(Enomem);

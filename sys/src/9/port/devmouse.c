@@ -617,20 +617,20 @@ mousetrack(int dx, int dy, int b, ulong msec)
 void
 absmousetrack(int x, int y, int b, ulong msec)
 {
+	Memimage *i;
 	int lastb;
 
-	if(gscreen==nil)
+	if((i = gscreen) == nil)
 		return;
 
-	if(x < gscreen->clipr.min.x)
-		x = gscreen->clipr.min.x;
-	if(x >= gscreen->clipr.max.x)
-		x = gscreen->clipr.max.x-1;
-	if(y < gscreen->clipr.min.y)
-		y = gscreen->clipr.min.y;
-	if(y >= gscreen->clipr.max.y)
-		y = gscreen->clipr.max.y-1;
-
+	if(x < i->clipr.min.x)
+		x = i->clipr.min.x;
+	if(x >= i->clipr.max.x)
+		x = i->clipr.max.x-1;
+	if(y < i->clipr.min.y)
+		y = i->clipr.min.y;
+	if(y >= i->clipr.max.y)
+		y = i->clipr.max.y-1;
 
 	ilock(&mouse);
 	mouse.xy = Pt(x, y);
@@ -656,21 +656,22 @@ absmousetrack(int x, int y, int b, ulong msec)
 void
 scmousetrack(int x, int y, int b, ulong msec)
 {
+	Memimage *i;
 	vlong vx, vy;
 
-	if(gscreen==nil)
+	if((i = gscreen) == nil)
 		return;
 	
-	vx = (vlong)(uint)x * (gscreen->clipr.max.x - gscreen->clipr.min.x);
-	x = (vx + (1<<30) - (~vx>>31&1) >> 31) + gscreen->clipr.min.x;
-	vy = (vlong)(uint)y * (gscreen->clipr.max.y - gscreen->clipr.min.y);
-	y = (vy + (1<<30) - (~vy>>31&1) >> 31) + gscreen->clipr.min.y;
+	vx = (vlong)(uint)x * (i->clipr.max.x - i->clipr.min.x);
+	x = (vx + (1<<30) - (~vx>>31&1) >> 31) + i->clipr.min.x;
+	vy = (vlong)(uint)y * (i->clipr.max.y - i->clipr.min.y);
+	y = (vy + (1<<30) - (~vy>>31&1) >> 31) + i->clipr.min.y;
 	
 	absmousetrack(x, y, b, msec);
 }
 
-static ulong
-lastms(void)
+ulong
+lastmousems(void)
 {
 	static ulong lasttick;
 	ulong t, d;
@@ -701,7 +702,7 @@ m3mouseputc(Queue*, int c)
 	short x;
 	int dx, dy, newbuttons;
 
-	if(lastms() > 500)
+	if(lastmousems() > 500)
 		nb = 0;
 	if(nb == 3){
 		nb = 0;
@@ -749,7 +750,7 @@ m5mouseputc(Queue*, int c)
 	static uchar msg[4];
 	static int nb;
 
-	if(lastms() > 500)
+	if(lastmousems() > 500)
 		nb = 0;
 	msg[nb] = c & 0x7f;
 	if(++nb == 4){
@@ -781,7 +782,7 @@ mouseputc(Queue*, int c)
 	static uchar b[] = {0, 4, 2, 6, 1, 5, 3, 7, 0, 2, 2, 6, 1, 3, 3, 7};
 	int dx, dy, newbuttons;
 
-	if(lastms() > 500 || (c&0xF0) == 0x80)
+	if(lastmousems() > 500 || (c&0xF0) == 0x80)
 		nb = 0;
 	msg[nb] = c;
 	if(c & 0x80)
