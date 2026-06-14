@@ -16,7 +16,7 @@ OFILES=\
 #	memchr.$O\
 #	memcmp.$O\
 #	memmove.$O\
-	memset.$O\
+#	memset.$O\
 	notetramp.$O\
 	_seek.$O\
 	setjmp.$O\
