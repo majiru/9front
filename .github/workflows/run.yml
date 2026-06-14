@@ -1,0 +1,23 @@
+name: run
+on: push
+
+jobs:
+  from-nightly:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+      - name: nightly
+        run: |
+          git remote add upstream https://github.com/9front/9front.git
+          git fetch upstream
+          git clone https://github.com/majiru/9front-in-a-box.git ../9flake
+          git diff upstream/front > ../9flake/patch.diff
+          cd ../9flake
+          LATEST="$(curl https://build.9front.org/9front/latest)"
+          export SOURCE9="https://build.9front.org/9front/9front-$LATEST.amd64.qcow2.gz"
+          export HASH9=$(nix-prefetch-url $SOURCE9)
+          nix run '.#setup-vm-cwfs-amd64-custom' --impure
+          file=$(realpath patch.diff)
+          echo 'cd / && @{rfork n; mount -c /srv/boot /n/root && mkdir /n/root/^(riscv64 .github) } && { cat /mnt/term/'$file' | patch -p1 } && cd / && . /sys/lib/rootstub && cd /sys/src && mk nuke && mk install && @{rfork e; NOMK=gs objtype=riscv64 mk install } && cd /sys/src/9/riscv64 && mk install && echo PASSPASSPASS' | nix run '.#run-vm-cwfs-amd64' --impure -- -nogui | tee run.log
+          grep PASSPASSPASS run.log || exit 'failed'
